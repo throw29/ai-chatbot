@@ -44,7 +44,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Aurora AI",
     description="A polished AI chat interface with a FastAPI + Anthropic backend.",
-    version="0.1.0",
+    version="0.1.1",
     lifespan=lifespan,
 )
 
