@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Aurora —— 一个专注、优雅、有温度的 AI 对话助手。">
+  <meta name="theme-color" content="#070b14">
+  <title>Aurora · AI 对话助手</title>
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <script src="/static/js/theme-init.js"></script>
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#messageInput">跳到输入框</a>
+
+  <svg class="svg-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+    <symbol id="i-arrow-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
+    <symbol id="i-arrow-up-right" viewBox="0 0 24 24"><path d="M7 17 17 7M8 7h9v9"/></symbol>
+    <symbol id="i-stop" viewBox="0 0 24 24"><rect x="7.5" y="7.5" width="9" height="9" rx="2" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.6"/><path d="M12 2.6v2M12 19.4v2M21.4 12h-2M4.6 12h-2M18.65 5.35l-1.4 1.4M6.75 17.25l-1.4 1.4M18.65 18.65l-1.4-1.4M6.75 6.75l-1.4-1.4"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.1 14.2A8.2 8.2 0 0 1 9.8 3.9 8.4 8.4 0 1 0 20.1 14.2Z"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4.8A.8.8 0 0 1 9.8 4h4.4a.8.8 0 0 1 .8.8V7M6.5 7l.8 12.1a1.8 1.8 0 0 0 1.8 1.7h5.8a1.8 1.8 0 0 0 1.8-1.7L17.5 7M10 11v6M14 11v6"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="10.5" height="10.5" rx="2"/><path d="M15 9V6.5A2.5 2.5 0 0 0 12.5 4h-6A2.5 2.5 0 0 0 4 6.5v6A2.5 2.5 0 0 0 6.5 15H9"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 6.5v5h-5M4 17.5v-5h5"/><path d="M6.1 9a7 7 0 0 1 11.7-2.5L20 8.8M4 15.2l2.2 2.3A7 7 0 0 0 17.9 15"/></symbol>
+    <symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M12 3.2c.5 4.1 2.7 6.3 6.8 6.8-4.1.5-6.3 2.7-6.8 6.8-.5-4.1-2.7-6.3-6.8-6.8 4.1-.5 6.3-2.7 6.8-6.8Z"/><path d="M18.7 15.8c.2 1.6 1 2.4 2.6 2.6-1.6.2-2.4 1-2.6 2.6-.2-1.6-1-2.4-2.6-2.6 1.6-.2 2.4-1 2.6-2.6Z"/></symbol>
+    <symbol id="i-chat" viewBox="0 0 24 24"><path d="M20 11.4a7.6 7.6 0 0 1-8.1 7.6 8.4 8.4 0 0 1-3.3-.7L4 20l1.3-4.1a7.3 7.3 0 0 1-1.3-4.2A7.6 7.6 0 0 1 12 4a7.6 7.6 0 0 1 8 7.4Z"/></symbol>
+    <symbol id="i-pen" viewBox="0 0 24 24"><path d="m14.5 5.5 4 4M4.5 19.5l1-4L16 5a2.8 2.8 0 0 1 4 4L9.5 19.5l-5 1Z"/></symbol>
+    <symbol id="i-code" viewBox="0 0 24 24"><path d="m8.5 7-5 5 5 5M15.5 7l5 5-5 5M13.5 4l-3 16"/></symbol>
+    <symbol id="i-plan" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.7"/><path d="m15.4 8.6-2 4.8-4.8 2 2-4.8 4.8-2Z"/></symbol>
+    <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M8.4 14.7a6.1 6.1 0 1 1 7.2 0c-1 .8-1.5 1.7-1.5 2.8h-4.2c0-1.1-.5-2-1.5-2.8Z"/><path d="M9.9 20.5h4.2M10.5 17.5v-3M13.5 17.5v-3"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 8v5M12 16.5v.1"/><path d="M10.3 4.9 3.2 17.1A2 2 0 0 0 4.9 20h14.2a2 2 0 0 0 1.7-2.9L13.7 4.9a2 2 0 0 0-3.4 0Z"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5.3 19.5a6.7 6.7 0 0 1 13.4 0"/></symbol>
+  </svg>
+
+  <div class="ambient" aria-hidden="true">
+    <div class="ambient__orb ambient__orb--one"></div>
+    <div class="ambient__orb ambient__orb--two"></div>
+    <div class="ambient__orb ambient__orb--three"></div>
+    <div class="ambient__grid"></div>
+  </div>
+
+  <div class="app-shell" id="appShell">
+    <aside class="sidebar" id="sidebar" aria-label="对话侧边栏">
+      <div class="sidebar__inner">
+        <div class="sidebar__top">
+          <a class="brand" href="/" aria-label="Aurora 首页">
+            <span class="brand__orb" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><use href="#i-sparkles"></use></svg>
+            </span>
+            <span class="brand__copy">
+              <span class="brand__name">Aurora</span>
+              <span class="brand__tagline">AI 对话助手</span>
+            </span>
+          </a>
+          <button class="icon-button icon-button--ghost sidebar__close" id="sidebarCloseBtn" type="button" aria-label="关闭侧边栏">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-close"></use></svg>
+          </button>
+        </div>
+
+        <button class="new-chat-button" id="newChatBtn" type="button">
+          <span class="new-chat-button__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><use href="#i-plus"></use></svg>
+          </span>
+          <span>开启新对话</span>
+          <span class="shortcut" id="newChatShortcut" aria-hidden="true">Ctrl K</span>
+        </button>
+
+        <div class="history-heading">
+          <span>最近对话</span>
+          <span class="history-count" id="historyCount" aria-label="对话数量">0</span>
+        </div>
+
+        <div class="history-scroll">
+          <nav class="history-list" id="historyList" aria-label="历史对话"></nav>
+          <div class="history-empty" id="historyEmpty">
+            <span class="history-empty__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><use href="#i-chat"></use></svg>
+            </span>
+            <p>还没有对话</p>
+            <span>从一个问题开始吧</span>
+          </div>
+        </div>
+
+        <div class="sidebar__footer">
+          <div class="connection-card" id="connectionCard">
+            <span class="status-dot is-checking" id="statusDot" aria-hidden="true"></span>
+            <span class="connection-card__copy">
+              <span class="connection-card__label" id="statusText">正在连接服务</span>
+              <span class="connection-card__model" id="statusModel">读取模型配置…</span>
+            </span>
+          </div>
+          <div class="sidebar__actions">
+            <button class="sidebar-action" id="themeToggle" type="button" aria-label="切换明暗主题">
+              <span class="theme-icon theme-icon--moon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><use href="#i-moon"></use></svg>
+              </span>
+              <span class="theme-icon theme-icon--sun" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><use href="#i-sun"></use></svg>
+              </span>
+              <span id="themeLabel">切换到浅色</span>
+            </button>
+            <button class="sidebar-action sidebar-action--danger" id="clearAllBtn" type="button" aria-label="清空全部对话">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-trash"></use></svg>
+              <span>清空</span>
+            </button>
+          </div>
+          <p class="sidebar__note">Aurora Studio · 用心回应每一次提问</p>
+        </div>
+      </div>
+    </aside>
+
+    <div class="sidebar-backdrop" id="sidebarBackdrop" aria-hidden="true"></div>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="topbar__left">
+          <button class="icon-button topbar__menu" id="openSidebarBtn" type="button" aria-label="打开侧边栏" aria-expanded="false" aria-controls="sidebar">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-menu"></use></svg>
+          </button>
+          <div class="topbar__title">
+            <span class="eyebrow">Aurora workspace</span>
+            <h1 id="conversationTitle">新的对话</h1>
+          </div>
+        </div>
+        <div class="topbar__right">
+          <div class="model-chip" id="modelChip" title="当前模型">
+            <span class="model-chip__pulse" aria-hidden="true"></span>
+            <span class="model-chip__label" id="modelChipText">加载中…</span>
+          </div>
+          <button class="icon-button topbar__new" id="newChatTopBtn" type="button" aria-label="开启新对话" title="开启新对话">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-plus"></use></svg>
+          </button>
+        </div>
+      </header>
+
+      <section class="chat-stage" id="chatStage" aria-label="对话内容">
+        <div class="chat-column">
+          <section class="welcome" id="welcome">
+            <div class="welcome__visual" aria-hidden="true">
+              <span class="welcome__orbit welcome__orbit--outer"></span>
+              <span class="welcome__orbit welcome__orbit--inner"></span>
+              <span class="welcome__orb">
+                <svg viewBox="0 0 24 24"><use href="#i-sparkles"></use></svg>
+              </span>
+              <span class="welcome__spark welcome__spark--one"></span>
+              <span class="welcome__spark welcome__spark--two"></span>
+              <span class="welcome__spark welcome__spark--three"></span>
+            </div>
+
+            <div class="welcome__copy">
+              <span class="hero-pill">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-sparkles"></use></svg>
+                你的 AI 创意搭档
+              </span>
+              <h2>让灵感，<span class="gradient-text">在此刻发生</span></h2>
+              <p>思考、写作、编码，或者只是聊聊天。<br>Aurora 会认真理解你的每一个问题。</p>
+            </div>
+
+            <div class="suggestion-grid" aria-label="推荐问题">
+              <button class="suggestion-card suggestion-card--violet" type="button"
+                      data-prompt="帮我写一封得体又真诚的请假邮件，语气专业但不生硬。">
+                <span class="suggestion-card__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><use href="#i-pen"></use></svg>
+                </span>
+                <span class="suggestion-card__copy">
+                  <strong>灵感写作</strong>
+                  <span>打磨一段有温度的文字</span>
+                </span>
+                <svg class="suggestion-card__arrow" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow-up-right"></use></svg>
+              </button>
+
+              <button class="suggestion-card suggestion-card--cyan" type="button"
+                      data-prompt="用 Python 写一个带重试逻辑的 HTTP 请求示例，并逐行解释。">
+                <span class="suggestion-card__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><use href="#i-code"></use></svg>
+                </span>
+                <span class="suggestion-card__copy">
+                  <strong>代码助手</strong>
+                  <span>写代码、调试与解释</span>
+                </span>
+                <svg class="suggestion-card__arrow" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow-up-right"></use></svg>
+              </button>
+
+              <button class="suggestion-card suggestion-card--amber" type="button"
+                      data-prompt="我想在一个月内入门数据分析，帮我制定一份可执行的学习计划。">
+                <span class="suggestion-card__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><use href="#i-plan"></use></svg>
+                </span>
+                <span class="suggestion-card__copy">
+                  <strong>学习规划</strong>
+                  <span>把目标拆成可执行步骤</span>
+                </span>
+                <svg class="suggestion-card__arrow" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow-up-right"></use></svg>
+              </button>
+
+              <button class="suggestion-card suggestion-card--pink" type="button"
+                      data-prompt="围绕「未来城市」给我 5 个有画面感的短篇故事创意。">
+                <span class="suggestion-card__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><use href="#i-bulb"></use></svg>
+                </span>
+                <span class="suggestion-card__copy">
+                  <strong>创意脑暴</strong>
+                  <span>从一个点子开始发散</span>
+                </span>
+                <svg class="suggestion-card__arrow" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow-up-right"></use></svg>
+              </button>
+            </div>
+
+            <p class="hero-footnote"><span class="key">Enter</span> 发送 <span class="dot-separator">·</span> <span class="key">Shift + Enter</span> 换行</p>
+          </section>
+
+          <div class="messages" id="messages" role="log" aria-live="polite" aria-label="消息列表"></div>
+        </div>
+      </section>
+
+      <button class="scroll-bottom" id="scrollToBottom" type="button" aria-label="回到最新消息" title="回到最新消息">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-chevron-down"></use></svg>
+      </button>
+
+      <footer class="composer-area">
+        <div class="composer-wrap">
+          <form class="composer" id="composer" novalidate>
+            <label class="sr-only" for="messageInput">输入消息</label>
+            <textarea
+              class="composer__input"
+              id="messageInput"
+              name="message"
+              rows="1"
+              maxlength="12000"
+              placeholder="给 Aurora 发消息…"
+              autocomplete="off"
+              spellcheck="false"
+            ></textarea>
+            <div class="composer__bottom">
+              <div class="composer__meta">
+                <span class="send-hint"><span class="key">Enter</span> 发送</span>
+                <span class="character-count" id="characterCount"></span>
+              </div>
+              <div class="composer__actions">
+                <button class="send-button" id="sendButton" type="submit" aria-label="发送消息" title="发送消息" disabled>
+                  <svg class="send-button__icon send-button__icon--send" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow-up"></use></svg>
+                  <svg class="send-button__icon send-button__icon--stop" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-stop"></use></svg>
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+        <p class="disclaimer">Aurora 可能会犯错，请核实重要信息。</p>
+      </footer>
+    </main>
+  </div>
+
+  <div class="toast-region" id="toastRegion" aria-live="polite" aria-atomic="true"></div>
+
+  <script src="/static/vendor/axios.min.js"></script>
+  <script src="/static/vendor/marked.umd.js"></script>
+  <script src="/static/vendor/purify.min.js"></script>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

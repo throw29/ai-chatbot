@@ -1,0 +1,34 @@
+# Local secrets — never commit this file
+.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local data, logs, credentials and build artifacts
+*.log
+logs/
+*.pem
+*.key
+*.p12
+*.pfx
+*.sqlite*
+*.db
+.envrc
+.netrc
+secrets/
+credentials*.json
+build/
+dist/
+*.egg-info/

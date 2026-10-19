@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="bg" x1="8" y1="6" x2="58" y2="60" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7378ff"/>
+      <stop offset="0.55" stop-color="#9d68ff"/>
+      <stop offset="1" stop-color="#e67abd"/>
+    </linearGradient>
+    <radialGradient id="shine" cx="0" cy="0" r="1" gradientTransform="translate(20 15) rotate(48) scale(34)">
+      <stop stop-color="#ffffff" stop-opacity=".52"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="64" height="64" rx="18" fill="url(#bg)"/>
+  <rect width="64" height="64" rx="18" fill="url(#shine)"/>
+  <rect x="1" y="1" width="62" height="62" rx="17" fill="none" stroke="#ffffff" stroke-opacity=".2"/>
+  <path d="M31.8 12.5c1.15 10.1 6.55 15.5 16.65 16.65-10.1 1.15-15.5 6.55-16.65 16.65-1.15-10.1-6.55-15.5-16.65-16.65 10.1-1.15 15.5-6.55 16.65-16.65Z"
+        fill="none" stroke="#ffffff" stroke-width="3.1" stroke-linejoin="round"/>
+  <path d="M46.6 40.8c.35 3 1.9 4.55 4.9 4.9-3 .35-4.55 1.9-4.9 4.9-.35-3-1.9-4.55-4.9-4.9 3-.35 4.55-1.9 4.9-4.9Z"
+        fill="#ffffff" fill-opacity=".9" stroke="none"/>
+</svg>
