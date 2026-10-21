@@ -1,5 +1,9 @@
 # Aurora · AI 对话助手
 
+![Aurora · AI 恋爱陪伴概念封面](docs/images/aurora-cover.png)
+
+> 配图为 AI 生成的恋爱陪伴主题概念插画，并非实际界面截图；仓库功能以以下说明和代码为准。
+
 基于 FastAPI 和原生 HTML / CSS / JavaScript 的本地 AI 聊天应用。后端使用 Anthropic Python SDK，可连接支持 Anthropic Messages 协议的模型服务。
 
 ## 项目解决什么问题
@@ -16,6 +20,12 @@ Aurora 为已有模型 API 凭据的用户提供一个可在本机运行的浏�
 - 深浅主题、移动端侧栏和键盘快捷键。
 - 后端请求校验、超时及常见上游错误处理。
 - 本地静态资源、健康检查 API 和 Windows 启动脚本。
+
+## 角色视觉概念
+
+温柔、傲娇、犀利、暴躁、元气、高冷：六种性格的角色视觉设定，用于展示 Aurora 的陪伴主题设计。
+
+![Aurora 六种性格角色概念插画](docs/images/aurora-personalities.png)
 
 ## 安装方法
 
