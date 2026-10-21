@@ -2,7 +2,7 @@
 
 ![Aurora · AI 恋爱陪伴概念封面](docs/images/aurora-cover.png)
 
-> 配图为 AI 生成的恋爱陪伴主题概念插画，并非实际界面截图；仓库功能以以下说明和代码为准。
+> 配图为 AI 生成的恋爱陪伴主题概念插画，仓库功能以以下说明和代码为准。
 
 基于 FastAPI 和原生 HTML / CSS / JavaScript 的本地 AI 聊天应用。后端使用 Anthropic Python SDK，可连接支持 Anthropic Messages 协议的模型服务。
 
