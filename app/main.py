@@ -13,6 +13,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from .config import get_settings
+from . import __version__
 from .schemas import ChatRequest, ChatResponse, HealthResponse
 from .service import ChatService, ChatServiceError
 
@@ -44,7 +45,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Aurora AI",
     description="A polished AI chat interface with a FastAPI + Anthropic backend.",
-    version="0.1.1",
+    version=__version__,
     lifespan=lifespan,
 )
 
@@ -99,7 +100,7 @@ async def health(request: Request) -> HealthResponse:
 async def chat(payload: ChatRequest, request: Request) -> ChatResponse:
     service: ChatService = request.app.state.chat_service
     try:
-        result = await service.reply(payload.messages)
+        result = await service.reply(payload.messages, payload.persona)
     except ChatServiceError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
 

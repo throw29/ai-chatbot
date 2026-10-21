@@ -9,8 +9,8 @@ title Aurora AI Launcher
 
 set "AURORA_DIR=%~dp0"
 if "%AURORA_DIR:~-1%"=="\" set "AURORA_DIR=%AURORA_DIR:~0,-1%"
-set "AURORA_URL=http://127.0.0.1:8000"
-set "AURORA_HEALTH=http://127.0.0.1:8000/api/health"
+set "AURORA_URL=http://127.0.0.1:8010"
+set "AURORA_HEALTH=http://127.0.0.1:8010/api/health"
 set "OPEN_BROWSER=1"
 if /I "%~1"=="--no-browser" set "OPEN_BROWSER=0"
 
@@ -22,7 +22,7 @@ echo   Starting the Aurora AI backend...
 echo   Project: %AURORA_DIR%
 echo.
 
-start "Aurora AI Backend" /D "%AURORA_DIR%" cmd /k "uv run uvicorn app.main:app --host 127.0.0.1 --port 8000"
+start "Aurora AI Backend" /D "%AURORA_DIR%" cmd /k "uv run uvicorn app.main:app --host 127.0.0.1 --port 8010"
 
 set /a ATTEMPTS=0
 
@@ -31,7 +31,7 @@ call :health_ok
 if not errorlevel 1 goto open_app
 set /a ATTEMPTS+=1
 if %ATTEMPTS% GEQ 30 goto start_failed
-timeout /t 1 /nobreak >nul
+%SystemRoot%\System32\timeout.exe /t 1 /nobreak >nul 2>&1
 goto wait_loop
 
 :start_failed
@@ -40,7 +40,7 @@ echo   Aurora AI could not start within 30 seconds.
 echo   Run these commands in a terminal to see the error:
 echo.
 echo     cd /d "%AURORA_DIR%"
-echo     uv run uvicorn app.main:app --host 127.0.0.1 --port 8000
+echo     uv run uvicorn app.main:app --host 127.0.0.1 --port 8010
 echo.
 pause
 exit /b 1

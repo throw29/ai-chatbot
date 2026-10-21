@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Aurora AI — front-end logic
+   Aurora AI girlfriend — front-end logic
    Vanilla JS + Axios + marked + DOMPurify. State lives in localStorage.
    ========================================================================== */
 
@@ -10,14 +10,95 @@
     sessions: "aurora.sessions.v1",
     activeSession: "aurora.active-session.v1",
     theme: "aurora.theme.v1",
+    persona: "aurora.persona.v1",
   };
 
   const LIMITS = {
     maxContextMessages: 30,
     maxContextCharacters: 90_000,
+    maxMessageCharacters: 20_000,
     maxSessions: 40,
     inputCharacters: 12_000,
+    personaNameCharacters: 16,
   };
+
+  const PERSONAS = [
+    {
+      id: "gentle",
+      label: "温柔",
+      tagline: "把你的情绪，轻轻接住",
+      quote: "“今天辛苦了，过来让我抱抱。”",
+      icon: "i-heart",
+      tone: "#ffabc2",
+      tone2: "#ffd0df",
+      toneRgb: "255, 171, 194",
+      greeting:
+        "你回来啦，我是{name}。{time}。今天也辛苦了……先让我抱抱你，再慢慢听你说，好不好？",
+    },
+    {
+      id: "tsundere",
+      label: "傲娇",
+      tagline: "嘴上嫌弃，心里全是你",
+      quote: "“才、才没有特意等你呢。”",
+      icon: "i-sparkles",
+      tone: "#ff91a7",
+      tone2: "#ffc2b8",
+      toneRgb: "255, 145, 167",
+      greeting:
+        "哼，你终于来了。我是{name}，才、才没有一直等你呢。{time}……今天过得怎么样？快说给我听。",
+    },
+    {
+      id: "sharp",
+      label: "犀利",
+      tagline: "看穿你，也永远站你这边",
+      quote: "“别用‘没事’敷衍我，说真话。”",
+      icon: "i-bolt",
+      tone: "#9cd9ef",
+      tone2: "#b7c5ff",
+      toneRgb: "156, 217, 239",
+      greeting:
+        "来了？我是{name}。{time}。不用急着说漂亮话，坐过来，告诉我今天最真实的一件事。",
+    },
+    {
+      id: "grumpy",
+      label: "暴躁",
+      tagline: "火气很大，偏心更明显",
+      quote: "“谁惹你了？我现在就去……算了，先抱一下。”",
+      icon: "i-flame",
+      tone: "#ffad7d",
+      tone2: "#ff8e7a",
+      toneRgb: "255, 173, 125",
+      greeting:
+        "你怎么现在才来啊！……算了，看在你来了的份上，今天先不跟你计较。我是{name}，{time}，说吧，谁惹你了？",
+    },
+    {
+      id: "sunny",
+      label: "元气",
+      tagline: "把普通的一天变成小冒险",
+      quote: "“走呀！今天也要一起去发现好事情。”",
+      icon: "i-sun",
+      tone: "#ffd888",
+      tone2: "#ffb777",
+      toneRgb: "255, 216, 136",
+      greeting:
+        "抓住你啦！我是{name}！{time}——今天也要和我一起，把普通的一天过成小小冒险。先从最开心的一件事说起吧！",
+    },
+    {
+      id: "cool",
+      label: "高冷",
+      tagline: "话不多，但温柔都藏在细节里",
+      quote: "“……过来。没说不让你靠着我。”",
+      icon: "i-moon",
+      tone: "#b7a7ff",
+      tone2: "#8bc8ff",
+      toneRgb: "183, 167, 255",
+      greeting:
+        "……来了。我是{name}。{time}。不用刻意找话题，想说什么就说，我在这儿。",
+    },
+  ];
+
+  const PERSONA_MAP = Object.fromEntries(PERSONAS.map((persona) => [persona.id, persona]));
+  const DEFAULT_PERSONA = PERSONAS[0];
 
   const IS_MAC = /Mac|iPhone|iPad|iPod/i.test(
     navigator.platform || navigator.userAgent || ""
@@ -29,12 +110,13 @@
   const api = window.axios
     ? window.axios.create({
         baseURL: "",
-        timeout: 200_000,
+        timeout: 610_000, // Backend total deadline is configurable up to 600 s.
         headers: { Accept: "application/json" },
       })
     : null;
 
   const state = {
+    persona: null,
     sessions: [],
     activeSessionId: null,
     isLoading: false,
@@ -44,10 +126,13 @@
     sidebarOpen: false,
     storageWarned: false,
     fatal: !api,
+    setupMode: "create",
+    setupDraft: { personality: null, name: "" },
   };
 
   const els = {};
   let messageInputComposing = false;
+  let nameInputComposing = false;
 
   const timeFormatter = new Intl.DateTimeFormat("zh-CN", {
     hour: "2-digit",
@@ -71,14 +156,30 @@
     syncThemeUI();
     syncShortcutLabel();
     syncSidebarInert();
-    loadSessions();
-    refreshUI({ forceScroll: true, scrollMode: "auto" });
+
+    state.persona = loadPersona();
+    loadSessions(); // Preserve legacy history until the user approves a reset.
+
+    if (state.persona) {
+      applyPersona(state.persona);
+      document.documentElement.dataset.view = "chat";
+      ensureChatSession();
+      persistSessions();
+      refreshUI({ forceScroll: true, scrollMode: "auto" });
+    } else {
+      document.documentElement.dataset.view = "setup";
+      openSetup("create", { initial: true });
+    }
+
     updateSendButton();
     checkHealth();
 
     if (state.fatal) {
       showToast("前端依赖加载失败，请刷新页面后重试。", "error", 7000);
-    } else if (window.matchMedia("(pointer: fine)").matches) {
+    } else if (
+      state.persona &&
+      window.matchMedia("(pointer: fine)").matches
+    ) {
       requestAnimationFrame(() => els.messageInput.focus());
     }
   }
@@ -105,10 +206,10 @@
     els.themeLabel = byId("themeLabel");
     els.clearAllBtn = byId("clearAllBtn");
     els.conversationTitle = byId("conversationTitle");
-    els.modelChip = byId("modelChip");
-    els.modelChipText = byId("modelChipText");
+    els.topbarStatus = byId("topbarStatus");
+    els.topbarAvatarInitial = byId("topbarAvatarInitial");
+    els.personaSettingsBtn = byId("personaSettingsBtn");
     els.chatStage = byId("chatStage");
-    els.welcome = byId("welcome");
     els.messages = byId("messages");
     els.composer = byId("composer");
     els.messageInput = byId("messageInput");
@@ -117,7 +218,25 @@
     els.scrollToBottom = byId("scrollToBottom");
     els.toastRegion = byId("toastRegion");
     els.themeMeta = document.querySelector('meta[name="theme-color"]');
-    els.suggestions = Array.from(document.querySelectorAll("[data-prompt]"));
+
+    els.setupScreen = byId("setupScreen");
+    els.setupCloseBtn = byId("setupCloseBtn");
+    els.setupStep1 = byId("setupStep1");
+    els.setupStep2 = byId("setupStep2");
+    els.setupProgressSteps = Array.from(
+      document.querySelectorAll("[data-setup-progress]")
+    );
+    els.personaGrid = byId("personaGrid");
+    els.personaSelectionHint = byId("personaSelectionHint");
+    els.setupNextBtn = byId("setupNextBtn");
+    els.setupBackBtn = byId("setupBackBtn");
+    els.personaNameInput = byId("personaNameInput");
+    els.nameCounter = byId("nameCounter");
+    els.nameAvatarInitial = byId("nameAvatarInitial");
+    els.nameField = byId("nameField");
+    els.personaSummary = byId("personaSummary");
+    els.setupFinishBtn = byId("setupFinishBtn");
+    els.nameSuggestions = byId("nameSuggestions");
   }
 
   function bindEvents() {
@@ -135,6 +254,7 @@
     els.newChatTopBtn.addEventListener("click", startNewChat);
     els.themeToggle.addEventListener("click", toggleTheme);
     els.clearAllBtn.addEventListener("click", clearAllSessions);
+    els.personaSettingsBtn.addEventListener("click", () => openSetup("edit"));
 
     els.openSidebarBtn.addEventListener("click", openSidebar);
     els.sidebarCloseBtn.addEventListener("click", () => closeSidebar());
@@ -143,11 +263,37 @@
     els.scrollToBottom.addEventListener("click", () => scrollToBottom("smooth"));
     els.chatStage.addEventListener("scroll", updateScrollButton, { passive: true });
 
-    els.suggestions.forEach((button) => {
-      button.addEventListener("click", () => {
-        const prompt = button.dataset.prompt;
-        if (prompt) useSuggestion(prompt);
-      });
+    els.setupNextBtn.addEventListener("click", goToNameStep);
+    els.setupBackBtn.addEventListener("click", goToPersonaStep);
+    els.setupCloseBtn.addEventListener("click", closeSetup);
+    els.setupFinishBtn.addEventListener("click", finishSetup);
+
+    els.personaNameInput.addEventListener("input", updateNameUi);
+    els.personaNameInput.addEventListener("compositionstart", () => {
+      nameInputComposing = true;
+    });
+    els.personaNameInput.addEventListener("compositionend", () => {
+      nameInputComposing = false;
+      updateNameUi();
+    });
+    els.personaNameInput.addEventListener("keydown", (event) => {
+      if (
+        event.key === "Enter" &&
+        !event.isComposing &&
+        !nameInputComposing &&
+        !els.setupFinishBtn.disabled
+      ) {
+        event.preventDefault();
+        finishSetup();
+      }
+    });
+
+    els.nameSuggestions.addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-name]");
+      if (!button) return;
+      els.personaNameInput.value = button.dataset.name || "";
+      updateNameUi();
+      els.personaNameInput.focus();
     });
 
     document.addEventListener("keydown", handleGlobalKeydown);
@@ -159,11 +305,373 @@
   }
 
   /* ------------------------------------------------------------------------
+     Setup flow
+     ------------------------------------------------------------------------ */
+
+  function openSetup(mode = "create", { initial = false } = {}) {
+    const nextMode = mode === "edit" && state.persona ? "edit" : "create";
+
+    if (state.isLoading) cancelActiveRequest();
+    closeSidebar();
+
+    state.setupMode = nextMode;
+    state.setupDraft.personality =
+      nextMode === "edit" && state.persona ? state.persona.personality : null;
+    state.setupDraft.name =
+      nextMode === "edit" && state.persona ? state.persona.name : "";
+
+    buildPersonaGrid();
+    els.personaNameInput.value = state.setupDraft.name;
+    els.setupCloseBtn.hidden = nextMode !== "edit";
+    setSetupFinishLabel();
+
+    if (state.setupDraft.personality) {
+      setPersonaTone(state.setupDraft.personality);
+    } else {
+      setPersonaTone(DEFAULT_PERSONA.id);
+    }
+
+    updateNameUi();
+    updatePersonalitySelectionUi();
+    showSetupStep(1, { focus: false });
+
+    document.documentElement.dataset.view = "setup";
+    document.title = "Aurora · 遇见你的 AI 女友";
+    if (els.setupScreen) els.setupScreen.scrollTop = 0;
+
+    if (!initial) {
+      requestAnimationFrame(() => {
+        const target =
+          els.personaGrid.querySelector(".persona-card.is-selected") ||
+          els.personaGrid.querySelector(".persona-card");
+        target?.focus({ preventScroll: true });
+      });
+    }
+  }
+
+  function buildPersonaGrid() {
+    els.personaGrid.replaceChildren();
+
+    PERSONAS.forEach((persona) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "persona-card";
+      button.dataset.personality = persona.id;
+      button.style.setProperty("--tone", persona.tone);
+      button.style.setProperty("--tone-rgb", persona.toneRgb);
+      button.setAttribute("aria-pressed", "false");
+      button.setAttribute("title", `${persona.label} · ${persona.tagline}`);
+
+      button.innerHTML = `
+        <span class="persona-card__top">
+          <span class="persona-card__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#${persona.icon}"></use></svg>
+          </span>
+          <span class="persona-card__check" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><use href="#i-check"></use></svg>
+          </span>
+        </span>
+        <span class="persona-card__name"></span>
+        <span class="persona-card__tagline"></span>
+        <span class="persona-card__quote"></span>
+      `;
+
+      button.querySelector(".persona-card__name").textContent = persona.label;
+      button.querySelector(".persona-card__tagline").textContent = persona.tagline;
+      button.querySelector(".persona-card__quote").textContent = persona.quote;
+      button.addEventListener("click", () => selectSetupPersonality(persona.id));
+      els.personaGrid.appendChild(button);
+    });
+  }
+
+  function selectSetupPersonality(personalityId) {
+    if (!PERSONA_MAP[personalityId]) return;
+    state.setupDraft.personality = personalityId;
+    setPersonaTone(personalityId);
+    updateNameUi();
+    updatePersonalitySelectionUi();
+  }
+
+  function updatePersonalitySelectionUi() {
+    const selectedId = state.setupDraft.personality;
+
+    els.personaGrid.querySelectorAll(".persona-card").forEach((card) => {
+      const selected = card.dataset.personality === selectedId;
+      card.classList.toggle("is-selected", selected);
+      card.setAttribute("aria-pressed", selected ? "true" : "false");
+    });
+
+    const selectedPersona = PERSONA_MAP[selectedId] || null;
+    els.setupNextBtn.disabled = !selectedPersona;
+    els.personaSelectionHint.textContent = selectedPersona
+      ? `已选择：${selectedPersona.label} · ${selectedPersona.tagline}`
+      : "选择一种性格继续";
+
+    updatePersonaSummary(selectedPersona);
+  }
+
+  function updatePersonaSummary(selectedPersona = PERSONA_MAP[state.setupDraft.personality]) {
+    if (!selectedPersona) {
+      els.personaSummary.hidden = true;
+      els.personaSummary.replaceChildren();
+      return;
+    }
+
+    const name = normalizePersonaName(els.personaNameInput.value);
+    els.personaSummary.hidden = false;
+    els.personaSummary.innerHTML = `
+      <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#${selectedPersona.icon}"></use></svg>
+      <span></span>
+    `;
+    els.personaSummary.querySelector("span").textContent = name
+      ? `${name} · ${selectedPersona.label}女友`
+      : `${selectedPersona.label}女友 · ${selectedPersona.tagline}`;
+  }
+
+  function goToNameStep() {
+    if (!state.setupDraft.personality) return;
+    showSetupStep(2);
+    updateNameUi();
+    if (els.setupScreen) els.setupScreen.scrollTop = 0;
+    requestAnimationFrame(() => {
+      els.personaNameInput.focus({ preventScroll: true });
+    });
+  }
+
+  function goToPersonaStep() {
+    showSetupStep(1);
+    requestAnimationFrame(() => {
+      const target =
+        els.personaGrid.querySelector(".persona-card.is-selected") ||
+        els.personaGrid.querySelector(".persona-card");
+      target?.focus({ preventScroll: true });
+    });
+  }
+
+  function showSetupStep(step, { focus = true } = {}) {
+    const nameStep = step === 2;
+    els.setupStep1.hidden = nameStep;
+    els.setupStep2.hidden = !nameStep;
+
+    els.setupProgressSteps.forEach((progressStep) => {
+      const number = Number(progressStep.dataset.setupProgress);
+      progressStep.classList.toggle("is-active", number === step);
+      progressStep.classList.toggle("is-complete", number < step);
+    });
+
+    if (nameStep) {
+      updateNameUi();
+    } else if (focus) {
+      const target =
+        els.personaGrid.querySelector(".persona-card.is-selected") ||
+        els.personaGrid.querySelector(".persona-card");
+      target?.focus({ preventScroll: true });
+    }
+  }
+
+  function updateNameUi() {
+    const rawName = els.personaNameInput.value;
+    const characters = Array.from(rawName);
+    const normalized = normalizePersonaName(rawName);
+    const initial = firstCharacter(normalized) || "她";
+
+    els.nameCounter.textContent = `${characters.length} / ${LIMITS.personaNameCharacters}`;
+    els.nameAvatarInitial.textContent = initial;
+    els.nameField.classList.toggle("is-invalid", rawName.length > 0 && !normalized);
+    els.setupFinishBtn.disabled = !state.setupDraft.personality || !normalized;
+
+    updatePersonaSummary();
+  }
+
+  function setSetupFinishLabel() {
+    const label = els.setupFinishBtn.querySelector("span");
+    if (label) {
+      label.textContent =
+        state.setupMode === "edit" ? "保存她的设定" : "开始这段故事";
+    }
+  }
+
+  function finishSetup() {
+    const personalityId = state.setupDraft.personality;
+    const name = normalizePersonaName(els.personaNameInput.value);
+
+    if (!personalityId || !PERSONA_MAP[personalityId]) {
+      showToast("先选择一种她的性格吧。", "info");
+      showSetupStep(1);
+      return;
+    }
+
+    if (!name) {
+      showToast("还没有给她起名字呢。", "info");
+      els.personaNameInput.focus();
+      return;
+    }
+
+    const existing = state.persona;
+    const changed =
+      !existing ||
+      existing.name !== name ||
+      existing.personality !== personalityId;
+    const hasUserConversation = state.sessions.some((session) =>
+      session.messages.some((message) => message.role === "user")
+    );
+
+    if (changed && hasUserConversation) {
+      const shouldContinue = window.confirm(
+        `设置或修改角色会清空现有的 ${state.sessions.length} 段对话，并重新开始。请先保留需要的内容。要继续吗？`
+      );
+      if (!shouldContinue) return;
+    }
+
+    const now = new Date().toISOString();
+    const profile = {
+      name,
+      personality: personalityId,
+      createdAt: existing?.createdAt || now,
+      updatedAt: now,
+    };
+
+    const stored = savePersona(profile);
+    if (!stored) {
+      showToast("角色设定保存失败，原有角色和对话已保留。请检查浏览器存储空间后重试。", "error", 6000);
+      return;
+    }
+    state.persona = profile;
+    applyPersona(profile);
+
+    if (!existing || changed) {
+      resetConversationsForNewPersona();
+      const greetingSession = createGreetingSession();
+      clearComposer();
+      document.documentElement.dataset.view = "chat";
+      persistSessions();
+      refreshUI({
+        forceScroll: true,
+        scrollMode: "auto",
+        animateMessageId: greetingSession?.messages[0]?.id || null,
+      });
+      showToast(
+        existing
+          ? "她已按你的新设定，重新回到你身边。"
+          : `${profile.name} 已经在等你了。`,
+        "success",
+        3600
+      );
+    } else {
+      document.documentElement.dataset.view = "chat";
+      ensureChatSession();
+      persistSessions();
+      refreshUI({ forceScroll: true, scrollMode: "auto" });
+    }
+
+    closeSidebar();
+    focusComposerIfDesktop();
+  }
+
+  function closeSetup() {
+    if (state.setupMode !== "edit" || !state.persona) return;
+
+    applyPersona(state.persona);
+    document.documentElement.dataset.view = "chat";
+    refreshUI({ forceScroll: true, scrollMode: "auto" });
+    closeSidebar();
+
+    requestAnimationFrame(() => {
+      els.personaSettingsBtn.focus({ preventScroll: true });
+    });
+  }
+
+  function setPersonaTone(personalityId) {
+    const persona = PERSONA_MAP[personalityId] || DEFAULT_PERSONA;
+    const rootStyle = document.documentElement.style;
+    rootStyle.setProperty("--persona-tone", persona.tone);
+    rootStyle.setProperty("--persona-tone-2", persona.tone2);
+    rootStyle.setProperty("--persona-tone-rgb", persona.toneRgb);
+    document.documentElement.dataset.personality = persona.id;
+  }
+
+  /* ------------------------------------------------------------------------
+     Persona persistence and chrome
+     ------------------------------------------------------------------------ */
+
+  function loadPersona() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.persona);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== "object") return null;
+
+      const name = normalizePersonaName(parsed.name);
+      if (!name || !PERSONA_MAP[parsed.personality]) return null;
+
+      return {
+        name,
+        personality: parsed.personality,
+        createdAt: normalizeDate(parsed.createdAt),
+        updatedAt: normalizeDate(parsed.updatedAt),
+      };
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function savePersona(persona) {
+    try {
+      localStorage.setItem(STORAGE_KEYS.persona, JSON.stringify(persona));
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function applyPersona(persona) {
+    const info = PERSONA_MAP[persona.personality] || DEFAULT_PERSONA;
+    setPersonaTone(info.id);
+    updateHeader();
+  }
+
+  function updateHeader() {
+    if (!state.persona) {
+      els.conversationTitle.textContent = "她";
+      els.topbarStatus.textContent = "AI 虚拟角色";
+      els.topbarAvatarInitial.textContent = "她";
+      document.title = "Aurora · 遇见你的 AI 女友";
+      return;
+    }
+
+    const info = PERSONA_MAP[state.persona.personality] || DEFAULT_PERSONA;
+    els.conversationTitle.textContent = state.persona.name;
+    els.conversationTitle.title = state.persona.name;
+    els.topbarStatus.textContent = `${info.label} · AI 虚拟角色`;
+    els.topbarAvatarInitial.textContent = firstCharacter(state.persona.name) || "她";
+    els.messageInput.placeholder = `对${state.persona.name}说点什么…`;
+    document.title = `${state.persona.name} · Aurora AI 女友`;
+  }
+
+  function normalizePersonaName(value) {
+    if (typeof value !== "string") return "";
+    const cleaned = value.trim().replace(/\s+/g, " ");
+    if (!cleaned) return "";
+    if (Array.from(cleaned).some((character) => character.charCodeAt(0) < 32)) {
+      return "";
+    }
+    return Array.from(cleaned).slice(0, LIMITS.personaNameCharacters).join("");
+  }
+
+  function firstCharacter(value) {
+    return Array.from(String(value || "").trim())[0] || "";
+  }
+
+  /* ------------------------------------------------------------------------
      Composer
      ------------------------------------------------------------------------ */
 
   function handleComposerSubmit(event) {
     event.preventDefault();
+
+    if (document.documentElement.dataset.view !== "chat" || !state.persona) {
+      return;
+    }
 
     if (state.isLoading) {
       stopGeneration();
@@ -201,6 +709,18 @@
   }
 
   function handleGlobalKeydown(event) {
+    if (document.documentElement.dataset.view === "setup") {
+      if (
+        event.key === "Escape" &&
+        state.setupMode === "edit" &&
+        state.persona
+      ) {
+        event.preventDefault();
+        closeSetup();
+      }
+      return;
+    }
+
     if ((event.metaKey || event.ctrlKey) && !event.altKey && event.key.toLowerCase() === "k") {
       event.preventDefault();
       startNewChat();
@@ -223,11 +743,13 @@
   function updateSendButton() {
     const hasText = els.messageInput.value.trim().length > 0;
     const isLoading = state.isLoading;
+    const inChat = document.documentElement.dataset.view === "chat";
 
-    els.sendButton.disabled = state.fatal || (!isLoading && !hasText);
+    els.sendButton.disabled =
+      state.fatal || !state.persona || !inChat || (!isLoading && !hasText);
     els.sendButton.classList.toggle("is-loading", isLoading);
-    els.sendButton.setAttribute("aria-label", isLoading ? "停止生成" : "发送消息");
-    els.sendButton.title = isLoading ? "停止生成" : "发送消息";
+    els.sendButton.setAttribute("aria-label", isLoading ? "停止回复" : "发送消息");
+    els.sendButton.title = isLoading ? "停止回复" : "发送消息";
   }
 
   function updateCharacterCount() {
@@ -250,27 +772,12 @@
   }
 
   function focusComposerIfDesktop() {
-    if (window.matchMedia("(pointer: fine)").matches) {
+    if (
+      document.documentElement.dataset.view === "chat" &&
+      window.matchMedia("(pointer: fine)").matches
+    ) {
       els.messageInput.focus();
     }
-  }
-
-  function useSuggestion(prompt) {
-    if (state.isLoading) {
-      showToast("请先等待当前回复完成，或点击停止生成。", "info");
-      return;
-    }
-
-    if (state.fatal) {
-      showToast("页面依赖没有加载完成，请刷新后重试。", "error");
-      return;
-    }
-
-    els.messageInput.value = prompt;
-    autoResizeInput();
-    updateSendButton();
-    updateCharacterCount();
-    sendMessage(prompt);
   }
 
   /* ------------------------------------------------------------------------
@@ -279,23 +786,34 @@
 
   function sendMessage(rawText) {
     const text = rawText.trim();
-    if (!text || state.isLoading) return;
+    if (
+      !text ||
+      state.isLoading ||
+      !state.persona ||
+      document.documentElement.dataset.view !== "chat"
+    ) {
+      return;
+    }
 
     let session = getActiveSession();
     let sessionWasCreated = false;
-    let previousTitle = null;
-    let previousUpdatedAt = null;
+
+    if (text.length > LIMITS.inputCharacters) {
+      showToast("消息过长，请缩短到 12,000 字符以内后重试。", "error");
+      return;
+    }
 
     if (!session) {
-      session = createSession(text);
+      session = createGreetingSession();
+      if (!session) return;
       sessionWasCreated = true;
-    } else {
-      previousTitle = session.title;
-      previousUpdatedAt = session.updatedAt;
-      if (session.messages.length === 0) {
-        session.title = makeSessionTitle(text);
-      }
     }
+
+    const hasUserMessages = session.messages.some(
+      (message) => message.role === "user"
+    );
+    const previousTitle = session.title;
+    const previousUpdatedAt = session.updatedAt;
 
     const userMessage = {
       id: makeId("m"),
@@ -305,6 +823,9 @@
     };
 
     session.messages.push(userMessage);
+    if (!hasUserMessages) {
+      session.title = makeSessionTitle(text);
+    }
     session.updatedAt = new Date().toISOString();
     state.activeSessionId = session.id;
 
@@ -340,14 +861,14 @@
         previousUpdatedAt,
         originalText: text,
         restoreInput: true,
-        cancelMessage: "已停止生成，你的输入已恢复。",
+        cancelMessage: "已停下，你的话我还没忘。",
       },
     });
   }
 
   async function performChatRequest({ sessionId, history, meta, previousAssistant }) {
-    if (!api) {
-      showToast("Axios 未加载，无法连接后端服务。", "error");
+    if (!api || !state.persona) {
+      showToast("暂时无法连接后端服务。", "error");
       return;
     }
 
@@ -372,7 +893,13 @@
     try {
       const response = await api.post(
         "/api/chat",
-        { messages: history },
+        {
+          messages: history,
+          persona: {
+            name: state.persona.name,
+            personality: state.persona.personality,
+          },
+        },
         { signal: controller.signal }
       );
 
@@ -405,10 +932,6 @@
       currentSession.messages.push(assistantMessage);
       currentSession.updatedAt = assistantMessage.createdAt;
 
-      if (typeof data.model === "string" && data.model.trim()) {
-        updateModelDisplay(data.model.trim(), true);
-      }
-
       persistSessions();
       refreshUI({
         forceScroll: true,
@@ -433,7 +956,7 @@
 
   function stopGeneration() {
     if (!state.isLoading || !state.activeRequest) return;
-    const message = state.activeRequest.cancelMessage || "已停止生成。";
+    const message = state.activeRequest.cancelMessage || "已停止回复。";
     cancelActiveRequest({ toastMessage: message });
     focusComposerIfDesktop();
   }
@@ -512,13 +1035,22 @@
   }
 
   function regenerateLastReply() {
-    if (state.isLoading) return;
+    if (state.isLoading || !state.persona) return;
 
     const session = getActiveSession();
     if (!session || !session.messages.length) return;
 
+    const hasUserMessages = session.messages.some(
+      (message) => message.role === "user"
+    );
     const lastMessage = session.messages[session.messages.length - 1];
-    if (lastMessage.role !== "assistant") return;
+    if (
+      !hasUserMessages ||
+      lastMessage.role !== "assistant" ||
+      lastMessage.kind === "greeting"
+    ) {
+      return;
+    }
 
     const previousUpdatedAt = session.updatedAt;
     session.messages.pop();
@@ -530,7 +1062,7 @@
       session.updatedAt = previousUpdatedAt;
       persistSessions();
       refreshUI({ forceScroll: true });
-      showToast("没有可重新生成的上一条消息。", "error");
+      showToast("没有可以重新回应的上一条消息。", "error");
       return;
     }
 
@@ -548,7 +1080,7 @@
         previousUpdatedAt,
         originalText: "",
         restoreInput: false,
-        cancelMessage: "已停止重新生成。",
+        cancelMessage: "好，这次先听你的。",
       },
     });
   }
@@ -557,6 +1089,7 @@
     const eligible = session.messages.filter(
       (message) =>
         (message.role === "user" || message.role === "assistant") &&
+        message.kind !== "greeting" &&
         typeof message.content === "string" &&
         message.content.trim().length > 0
     );
@@ -567,9 +1100,11 @@
 
     for (let index = recent.length - 1; index >= 0; index -= 1) {
       const message = recent[index];
-      const nextCount = characterCount + message.content.length;
+      // Limit API context only; keep the complete answer in history and the UI.
+      const content = Array.from(message.content).slice(0, LIMITS.maxMessageCharacters).join("");
+      const nextCount = characterCount + content.length;
       if (selected.length && nextCount > LIMITS.maxContextCharacters) break;
-      selected.unshift({ role: message.role, content: message.content });
+      selected.unshift({ role: message.role, content });
       characterCount = nextCount;
     }
 
@@ -583,7 +1118,6 @@
   async function checkHealth() {
     if (!api) {
       setConnectionUI("offline", "依赖未加载", "请刷新页面");
-      updateModelDisplay("服务未连接", false);
       return;
     }
 
@@ -595,11 +1129,9 @@
 
       if (data.configured) {
         state.health = { configured: true, model: data.model || "未知模型" };
-        updateModelDisplay(data.model || "未知模型", true);
-        setConnectionUI("online", "服务在线", `模型 · ${data.model || "未知"}`);
+        setConnectionUI("online", "凭据已配置", `模型 · ${data.model || "未知"}（可用性未验证）`);
       } else {
         state.health = { configured: false, model: data.model || "未知模型" };
-        updateModelDisplay("API 未配置", false);
         setConnectionUI("offline", "API 未配置", "请在 .env 中填写密钥");
         showToast(
           "后端尚未配置 API 凭据，请在 .env 中填写 ANTHROPIC_API_KEY 后重启服务。",
@@ -610,7 +1142,6 @@
     } catch (error) {
       state.health = null;
       setConnectionUI("offline", "后端未连接", "请确认 FastAPI 已启动");
-      updateModelDisplay("服务未连接", false);
       showToast("无法连接后端服务，请确认服务已经启动。", "error", 5000);
     }
   }
@@ -619,14 +1150,17 @@
      Session management
      ------------------------------------------------------------------------ */
 
-  function createSession(titleSource) {
+  function createGreetingSession() {
+    if (!state.persona) return null;
+
     const now = new Date().toISOString();
+    const greetingMessage = createGreetingMessage(now);
     const session = {
       id: makeId("s"),
-      title: makeSessionTitle(titleSource),
+      title: "新的故事",
       createdAt: now,
       updatedAt: now,
-      messages: [],
+      messages: greetingMessage ? [greetingMessage] : [],
     };
 
     state.sessions.unshift(session);
@@ -634,13 +1168,88 @@
     return session;
   }
 
+  function createGreetingMessage(createdAt = new Date().toISOString()) {
+    if (!state.persona) return null;
+    return {
+      id: makeId("m"),
+      role: "assistant",
+      content: buildGreeting(state.persona),
+      createdAt,
+      kind: "greeting",
+    };
+  }
+
+  function buildGreeting(persona) {
+    const timeGreeting = getTimeGreeting();
+    const template =
+      PERSONA_MAP[persona.personality]?.greeting || DEFAULT_PERSONA.greeting;
+    return template
+      .replace(/\{name\}/g, persona.name)
+      .replace(/\{time\}/g, timeGreeting);
+  }
+
+  function getTimeGreeting() {
+    const hour = new Date().getHours();
+    if (hour < 5) return "这么晚还没睡";
+    if (hour < 11) return "早安";
+    if (hour < 14) return "中午好";
+    if (hour < 18) return "下午好";
+    return "晚上好";
+  }
+
+  function ensureChatSession() {
+    if (!state.persona) return null;
+
+    if (!state.sessions.length) {
+      return createGreetingSession();
+    }
+
+    let session = getActiveSession();
+    if (!session) {
+      session = getSortedSessions()[0] || null;
+      state.activeSessionId = session ? session.id : null;
+    }
+
+    if (session && session.messages.length === 0) {
+      const greeting = createGreetingMessage();
+      if (greeting) {
+        session.messages.push(greeting);
+        session.updatedAt = new Date().toISOString();
+      }
+    }
+
+    return session;
+  }
+
   function startNewChat() {
+    if (
+      !state.persona ||
+      document.documentElement.dataset.view !== "chat"
+    ) {
+      return;
+    }
+
     if (state.isLoading) cancelActiveRequest();
-    state.activeSessionId = null;
-    persistSessions();
-    clearComposer();
-    refreshUI({ forceScroll: true, scrollMode: "auto" });
     closeSidebar();
+
+    const current = getActiveSession();
+    const currentHasUserMessages = Boolean(
+      current?.messages.some((message) => message.role === "user")
+    );
+
+    if (current && !currentHasUserMessages) {
+      focusComposerIfDesktop();
+      return;
+    }
+
+    const session = createGreetingSession();
+    clearComposer();
+    persistSessions();
+    refreshUI({
+      forceScroll: true,
+      scrollMode: "auto",
+      animateMessageId: session?.messages[0]?.id || null,
+    });
     focusComposerIfDesktop();
   }
 
@@ -679,33 +1288,53 @@
       clearComposer();
     }
 
+    if (!state.sessions.length) {
+      createGreetingSession();
+    }
+
     persistSessions();
     refreshUI({ forceScroll: true });
-    showToast("对话已删除。", "success", 2200);
+    showToast("这段故事已删除。", "success", 2200);
   }
 
   function clearAllSessions() {
-    if (!state.sessions.length && !state.activeRequest) {
-      showToast("暂无对话可清空。", "info");
+    if (document.documentElement.dataset.view !== "chat" || !state.persona) {
       return;
     }
 
-    if (!window.confirm("确定要清空全部对话吗？此操作无法撤销。")) return;
+    if (!window.confirm("确定要清空你和她的全部对话吗？这会重新开始你们的故事。")) {
+      return;
+    }
 
     if (state.activeRequest) cancelActiveRequest();
     state.sessions = [];
     state.activeSessionId = null;
+    removeSessionStorage();
     clearComposer();
 
+    const session = createGreetingSession();
+    persistSessions();
+    refreshUI({
+      forceScroll: true,
+      scrollMode: "auto",
+      animateMessageId: session?.messages[0]?.id || null,
+    });
+    showToast("对话已清空，她重新和你打了招呼。", "success", 2800);
+  }
+
+  function resetConversationsForNewPersona() {
+    state.sessions = [];
+    state.activeSessionId = null;
+    removeSessionStorage();
+  }
+
+  function removeSessionStorage() {
     try {
       localStorage.removeItem(STORAGE_KEYS.sessions);
       localStorage.removeItem(STORAGE_KEYS.activeSession);
     } catch (error) {
-      // Storage is optional; the in-memory state has already been cleared.
+      // Storage is optional; memory was already cleared.
     }
-
-    refreshUI({ forceScroll: true, scrollMode: "auto" });
-    showToast("已清空全部对话。", "success");
   }
 
   function getActiveSession() {
@@ -730,7 +1359,7 @@
       .replace(/[#>*_`~[\]()]/g, " ")
       .replace(/\s+/g, " ")
       .trim();
-    if (!cleaned) return "新的对话";
+    if (!cleaned) return "新的故事";
     const characters = Array.from(cleaned);
     return characters.length > 26 ? `${characters.slice(0, 26).join("")}…` : cleaned;
   }
@@ -787,12 +1416,14 @@
       if (rawMessage.role !== "user" && rawMessage.role !== "assistant") return;
       if (typeof rawMessage.content !== "string" || !rawMessage.content.trim()) return;
 
-      messages.push({
+      const message = {
         id: typeof rawMessage.id === "string" && rawMessage.id ? rawMessage.id : makeId("m"),
         role: rawMessage.role,
         content: rawMessage.content,
         createdAt: normalizeDate(rawMessage.createdAt),
-      });
+      };
+      if (rawMessage.kind === "greeting") message.kind = "greeting";
+      messages.push(message);
     });
 
     if (!messages.length) return null;
@@ -802,7 +1433,7 @@
     seenIds.add(id);
 
     const firstUserMessage = messages.find((message) => message.role === "user");
-    const fallbackTitle = firstUserMessage ? makeSessionTitle(firstUserMessage.content) : "新的对话";
+    const fallbackTitle = firstUserMessage ? makeSessionTitle(firstUserMessage.content) : "新的故事";
     const title =
       typeof raw.title === "string" && raw.title.trim()
         ? raw.title.trim().slice(0, 60)
@@ -862,15 +1493,6 @@
     els.chatStage.setAttribute("aria-busy", state.isLoading ? "true" : "false");
   }
 
-  function updateHeader() {
-    const session = getActiveSession();
-    const title = session ? session.title : "新的对话";
-
-    els.conversationTitle.textContent = title;
-    els.conversationTitle.title = title;
-    document.title = session ? `${title} · Aurora` : "Aurora · AI 对话助手";
-  }
-
   function renderHistory() {
     const sessions = getSortedSessions();
     els.historyCount.textContent = String(sessions.length);
@@ -895,7 +1517,7 @@
       const glyph = document.createElement("span");
       glyph.className = "history-item__glyph";
       glyph.setAttribute("aria-hidden", "true");
-      glyph.innerHTML = '<svg viewBox="0 0 24 24"><use href="#i-chat"></use></svg>';
+      glyph.innerHTML = '<svg viewBox="0 0 24 24"><use href="#i-heart"></use></svg>';
 
       const text = document.createElement("span");
       text.className = "history-item__text";
@@ -932,8 +1554,8 @@
     const session = getActiveSession();
     const messages = session ? session.messages : [];
     const wasNearBottom = isNearBottom();
+    const hasUserMessages = messages.some((message) => message.role === "user");
 
-    els.welcome.hidden = messages.length > 0;
     els.messages.replaceChildren();
 
     if (session) {
@@ -944,7 +1566,9 @@
       messages.forEach((message) => {
         const canRegenerate =
           !state.isLoading &&
+          hasUserMessages &&
           message.role === "assistant" &&
+          message.kind !== "greeting" &&
           lastAssistant &&
           message.id === lastAssistant.id;
         const animate = Boolean(animateMessageId && animateMessageId === message.id);
@@ -974,16 +1598,18 @@
   function buildMessageElement(message, { canRegenerate, animate }) {
     const article = document.createElement("article");
     article.className = `message ${message.role}`;
+    if (message.kind === "greeting") article.classList.add("is-greeting");
     article.dataset.messageId = message.id;
     if (animate) article.classList.add("is-new");
 
     const avatar = document.createElement("div");
     avatar.className = `avatar avatar--${message.role}`;
     avatar.setAttribute("aria-hidden", "true");
-    avatar.innerHTML =
-      message.role === "assistant"
-        ? '<svg viewBox="0 0 24 24"><use href="#i-sparkles"></use></svg>'
-        : '<svg viewBox="0 0 24 24"><use href="#i-user"></use></svg>';
+    if (message.role === "assistant") {
+      avatar.textContent = firstCharacter(state.persona?.name) || "她";
+    } else {
+      avatar.innerHTML = '<svg viewBox="0 0 24 24"><use href="#i-user"></use></svg>';
+    }
 
     const content = document.createElement("div");
     content.className = "message__content";
@@ -993,14 +1619,23 @@
 
     const author = document.createElement("span");
     author.className = "message__author";
-    author.textContent = message.role === "assistant" ? "Aurora" : "你";
+    author.textContent =
+      message.role === "assistant" ? state.persona?.name || "她" : "你";
 
     const time = document.createElement("time");
     time.className = "message__time";
     time.dateTime = message.createdAt;
     time.textContent = formatMessageTime(message.createdAt);
 
-    meta.append(author, time);
+    meta.append(author);
+    if (message.role === "assistant") {
+      const aiBadge = document.createElement("span");
+      aiBadge.className = "ai-badge";
+      aiBadge.textContent = "AI";
+      aiBadge.title = "AI 虚拟角色";
+      meta.append(aiBadge);
+    }
+    meta.append(time);
 
     const bubble = document.createElement("div");
     bubble.className = "bubble";
@@ -1026,7 +1661,7 @@
     actions.appendChild(copyAction);
 
     if (canRegenerate) {
-      const regenerateAction = createMessageAction("i-refresh", "重新生成", () => {
+      const regenerateAction = createMessageAction("i-refresh", "换一句", () => {
         regenerateLastReply();
       });
       actions.appendChild(regenerateAction);
@@ -1038,14 +1673,15 @@
   }
 
   function buildTypingIndicator() {
+    const name = state.persona?.name || "她";
     const article = document.createElement("article");
     article.className = "message assistant is-new";
-    article.setAttribute("aria-label", "Aurora 正在思考");
+    article.setAttribute("aria-label", `${name}正在输入`);
 
     const avatar = document.createElement("div");
     avatar.className = "avatar avatar--assistant";
     avatar.setAttribute("aria-hidden", "true");
-    avatar.innerHTML = '<svg viewBox="0 0 24 24"><use href="#i-sparkles"></use></svg>';
+    avatar.textContent = firstCharacter(name) || "她";
 
     const content = document.createElement("div");
     content.className = "message__content";
@@ -1054,11 +1690,14 @@
     meta.className = "message__meta";
     const author = document.createElement("span");
     author.className = "message__author";
-    author.textContent = "Aurora";
+    author.textContent = name;
+    const aiBadge = document.createElement("span");
+    aiBadge.className = "ai-badge";
+    aiBadge.textContent = "AI";
     const status = document.createElement("span");
     status.className = "message__time";
-    status.textContent = "正在思考";
-    meta.append(author, status);
+    status.textContent = "正在输入…";
+    meta.append(author, aiBadge, status);
 
     const bubble = document.createElement("div");
     bubble.className = "bubble typing-bubble";
@@ -1208,17 +1847,6 @@
      Status, theme, sidebar, shortcuts
      ------------------------------------------------------------------------ */
 
-  function updateModelDisplay(model, online) {
-    const cleanModel = String(model || "未知模型");
-    els.modelChipText.textContent = cleanModel;
-    els.modelChip.title = online ? `当前模型：${cleanModel}` : cleanModel;
-    els.statusModel.textContent = online ? `模型 · ${cleanModel}` : cleanModel;
-    els.statusModel.title = cleanModel;
-    if (online) {
-      state.health = { ...(state.health || {}), configured: true, model: cleanModel };
-    }
-  }
-
   function setConnectionUI(kind, label, detail) {
     els.statusDot.classList.remove("is-checking", "is-online", "is-offline");
     els.statusDot.classList.add(`is-${kind}`);
@@ -1246,7 +1874,7 @@
       isLight ? "切换到深色主题" : "切换到浅色主题"
     );
     if (els.themeMeta) {
-      els.themeMeta.setAttribute("content", isLight ? "#eff2fa" : "#060a13");
+      els.themeMeta.setAttribute("content", isLight ? "#fff7fa" : "#0b0710");
     }
   }
 
@@ -1270,7 +1898,6 @@
     if (els.main) els.main.inert = false;
     syncSidebarInert();
     if (wasOpen && MOBILE_SIDEBAR.matches) {
-      // Move focus out of the now-inert drawer.
       window.requestAnimationFrame(() => {
         if (!state.sidebarOpen) els.openSidebarBtn.focus({ preventScroll: true });
       });
@@ -1348,11 +1975,11 @@
 
   function friendlyErrorMessage(error) {
     if (error?.code === "BAD_RESPONSE") {
-      return "模型没有返回有效内容，请重试。";
+      return "她没有说出完整的话，请再试一次。";
     }
 
     if (error?.code === "ECONNABORTED" || error?.code === "ETIMEDOUT") {
-      return "请求超时了，请稍后重试。";
+      return "回应等得有点久了，请稍后重试。";
     }
 
     if (!error?.response) {
@@ -1372,10 +1999,10 @@
     }
 
     if (error.response.status >= 500) {
-      return "服务暂时不可用，请稍后重试。";
+      return "她暂时有点走神，请稍后再试。";
     }
 
-    return "发送失败，请稍后重试。";
+    return "消息没有送达，请稍后再试。";
   }
 
   async function copyText(text) {
@@ -1411,7 +2038,7 @@
     const toast = document.createElement("div");
     toast.className = `toast toast--${type}`;
 
-    const iconId = type === "error" ? "i-alert" : type === "success" ? "i-check" : "i-sparkles";
+    const iconId = type === "error" ? "i-alert" : type === "success" ? "i-check" : "i-heart";
     const icon = document.createElement("span");
     icon.setAttribute("aria-hidden", "true");
     icon.innerHTML = `<svg viewBox="0 0 24 24"><use href="#${iconId}"></use></svg>`;

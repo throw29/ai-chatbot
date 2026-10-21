@@ -1,14 +1,15 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-theme="dark">
+<html lang="zh-CN" data-theme="dark" data-view="setup">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Aurora —— 一个专注、优雅、有温度的 AI 对话助手。">
-  <meta name="theme-color" content="#070b14">
-  <title>Aurora · AI 对话助手</title>
+  <meta name="description" content="Aurora —— 选择她的性格，给她一个名字，开始一段只属于你们的 AI 恋爱对话。">
+  <meta name="theme-color" content="#0d0711">
+  <title>Aurora · 遇见你的 AI 女友</title>
   <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
   <script src="/static/js/theme-init.js"></script>
   <link rel="stylesheet" href="/static/css/styles.css">
+  <link rel="stylesheet" href="/static/css/romantic.css">
 </head>
 <body>
   <a class="skip-link" href="#messageInput">跳到输入框</a>
@@ -18,9 +19,10 @@
     <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
     <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
     <symbol id="i-arrow-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
-    <symbol id="i-arrow-up-right" viewBox="0 0 24 24"><path d="M7 17 17 7M8 7h9v9"/></symbol>
-    <symbol id="i-stop" viewBox="0 0 24 24"><rect x="7.5" y="7.5" width="9" height="9" rx="2" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+    <symbol id="i-chevron-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
     <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="i-stop" viewBox="0 0 24 24"><rect x="7.5" y="7.5" width="9" height="9" rx="2" fill="currentColor" stroke="none"/></symbol>
     <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.6"/><path d="M12 2.6v2M12 19.4v2M21.4 12h-2M4.6 12h-2M18.65 5.35l-1.4 1.4M6.75 17.25l-1.4 1.4M18.65 18.65l-1.4-1.4M6.75 6.75l-1.4-1.4"/></symbol>
     <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.1 14.2A8.2 8.2 0 0 1 9.8 3.9 8.4 8.4 0 1 0 20.1 14.2Z"/></symbol>
     <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4.8A.8.8 0 0 1 9.8 4h4.4a.8.8 0 0 1 .8.8V7M6.5 7l.8 12.1a1.8 1.8 0 0 0 1.8 1.7h5.8a1.8 1.8 0 0 0 1.8-1.7L17.5 7M10 11v6M14 11v6"/></symbol>
@@ -28,13 +30,13 @@
     <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 6.5v5h-5M4 17.5v-5h5"/><path d="M6.1 9a7 7 0 0 1 11.7-2.5L20 8.8M4 15.2l2.2 2.3A7 7 0 0 0 17.9 15"/></symbol>
     <symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M12 3.2c.5 4.1 2.7 6.3 6.8 6.8-4.1.5-6.3 2.7-6.8 6.8-.5-4.1-2.7-6.3-6.8-6.8 4.1-.5 6.3-2.7 6.8-6.8Z"/><path d="M18.7 15.8c.2 1.6 1 2.4 2.6 2.6-1.6.2-2.4 1-2.6 2.6-.2-1.6-1-2.4-2.6-2.6 1.6-.2 2.4-1 2.6-2.6Z"/></symbol>
     <symbol id="i-chat" viewBox="0 0 24 24"><path d="M20 11.4a7.6 7.6 0 0 1-8.1 7.6 8.4 8.4 0 0 1-3.3-.7L4 20l1.3-4.1a7.3 7.3 0 0 1-1.3-4.2A7.6 7.6 0 0 1 12 4a7.6 7.6 0 0 1 8 7.4Z"/></symbol>
-    <symbol id="i-pen" viewBox="0 0 24 24"><path d="m14.5 5.5 4 4M4.5 19.5l1-4L16 5a2.8 2.8 0 0 1 4 4L9.5 19.5l-5 1Z"/></symbol>
-    <symbol id="i-code" viewBox="0 0 24 24"><path d="m8.5 7-5 5 5 5M15.5 7l5 5-5 5M13.5 4l-3 16"/></symbol>
-    <symbol id="i-plan" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.7"/><path d="m15.4 8.6-2 4.8-4.8 2 2-4.8 4.8-2Z"/></symbol>
-    <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M8.4 14.7a6.1 6.1 0 1 1 7.2 0c-1 .8-1.5 1.7-1.5 2.8h-4.2c0-1.1-.5-2-1.5-2.8Z"/><path d="M9.9 20.5h4.2M10.5 17.5v-3M13.5 17.5v-3"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
     <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 8v5M12 16.5v.1"/><path d="M10.3 4.9 3.2 17.1A2 2 0 0 0 4.9 20h14.2a2 2 0 0 0 1.7-2.9L13.7 4.9a2 2 0 0 0-3.4 0Z"/></symbol>
     <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5.3 19.5a6.7 6.7 0 0 1 13.4 0"/></symbol>
+    <symbol id="i-heart" viewBox="0 0 24 24"><path d="M20.7 4.9a5.3 5.3 0 0 0-7.5 0L12 6l-1.2-1.1a5.3 5.3 0 0 0-7.5 7.5L4.4 13.5 12 21l7.6-7.5 1.1-1.1a5.3 5.3 0 0 0 0-7.5Z"/></symbol>
+    <symbol id="i-flame" viewBox="0 0 24 24"><path d="M12.1 21c4 0 6.4-2.5 6.4-6.1 0-2.8-1.8-5.1-3.4-6.6-.6-.5-1.4-.1-1.4.7 0 1-.4 2-1.1 2.7.1-2-.8-4.3-2.7-5.8-.5-.4-1.3-.1-1.3.6.1 2.4-2 3.7-2.8 5.5-.5 1-.7 1.9-.7 2.9 0 3.7 2.8 6.1 7 6.1Z"/><path d="M12 17.7c1.5 0 2.4-1 2.4-2.3 0-1.1-.7-2-1.3-2.6-.3-.2-.6-.1-.6.2 0 .5-.2 1-.5 1.3.1-1-.5-1.8-1.1-2.3-.2-.2-.5 0-.5.3 0 .9-.6 1.4-.9 2.1-.2.4-.3.7-.3 1.1 0 1.3 1 2.2 2.8 2.2Z"/></symbol>
+    <symbol id="i-bolt" viewBox="0 0 24 24"><path d="m13.2 2.5-8 11.3h5.7l-1 7.7 8-11.3h-5.7l1-7.7Z"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h8M17 7h3M4 17h3M12 17h8"/><circle cx="14.5" cy="7" r="2.2"/><circle cx="9.5" cy="17" r="2.2"/></symbol>
   </svg>
 
   <div class="ambient" aria-hidden="true">
@@ -44,17 +46,139 @@
     <div class="ambient__grid"></div>
   </div>
 
+  <!-- ==================== Onboarding ==================== -->
+  <section class="setup-screen" id="setupScreen" aria-labelledby="setupHeading">
+    <div class="setup-screen__glow" aria-hidden="true"></div>
+    <div class="setup-hearts" aria-hidden="true">
+      <span class="setup-heart setup-heart--1">♡</span>
+      <span class="setup-heart setup-heart--2">♡</span>
+      <span class="setup-heart setup-heart--3">♡</span>
+      <span class="setup-heart setup-heart--4">♡</span>
+      <span class="setup-heart setup-heart--5">♡</span>
+    </div>
+
+    <div class="setup-shell">
+      <header class="setup-top">
+        <div class="brand brand--setup">
+          <span class="brand__orb" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><use href="#i-heart"></use></svg>
+          </span>
+          <span class="brand__copy">
+            <span class="brand__name">Aurora</span>
+            <span class="brand__tagline">AI 恋爱陪伴</span>
+          </span>
+        </div>
+        <button class="setup-close" id="setupCloseBtn" type="button" hidden>取消</button>
+      </header>
+
+      <div class="setup-progress" aria-label="角色设置进度">
+        <div class="setup-progress__step is-active" data-setup-progress="1">
+          <span class="setup-progress__number">01</span>
+          <span>她的性格</span>
+        </div>
+        <span class="setup-progress__line" aria-hidden="true"></span>
+        <div class="setup-progress__step" data-setup-progress="2">
+          <span class="setup-progress__number">02</span>
+          <span>她的名字</span>
+        </div>
+      </div>
+
+      <div class="setup-card">
+        <section class="setup-step" id="setupStep1" aria-labelledby="setupHeading">
+          <div class="setup-intro">
+            <span class="setup-kicker">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-heart"></use></svg>
+              MEET YOUR GIRLFRIEND
+            </span>
+            <h1 id="setupHeading">这一次，<span class="gradient-text">心动的性格由你决定</span></h1>
+            <p>她会有自己的小脾气和小习惯，也会认真回应你此刻的心情。</p>
+          </div>
+
+          <div class="persona-grid" id="personaGrid" role="group" aria-label="选择女友性格"></div>
+
+          <footer class="setup-actions">
+            <p class="setup-hint" id="personaSelectionHint">选择一种性格继续</p>
+            <button class="primary-button" id="setupNextBtn" type="button" disabled>
+              <span>继续</span>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow-right"></use></svg>
+            </button>
+          </footer>
+        </section>
+
+        <section class="setup-step setup-step--name" id="setupStep2" aria-labelledby="nameHeading" hidden>
+          <button class="setup-back" id="setupBackBtn" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-chevron-left"></use></svg>
+            返回上一步
+          </button>
+
+          <div class="name-stage">
+            <div class="name-avatar" id="nameAvatarPreview" aria-hidden="true">
+              <span class="name-avatar__ring"></span>
+              <span id="nameAvatarInitial">她</span>
+            </div>
+
+            <span class="setup-kicker">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-heart"></use></svg>
+              ONE LAST THING
+            </span>
+            <h1 id="nameHeading">现在，<span class="gradient-text">给她一个名字</span></h1>
+            <p>以后，她会用这个名字，陪你度过每一个普通又特别的日子。</p>
+
+            <div class="name-field" id="nameField">
+              <label class="sr-only" for="personaNameInput">给女友起的名字</label>
+              <input
+                id="personaNameInput"
+                type="text"
+                maxlength="16"
+                placeholder="例如：晚晚"
+                autocomplete="off"
+                spellcheck="false"
+                enterkeyhint="done"
+              >
+              <span class="name-counter" id="nameCounter">0 / 16</span>
+            </div>
+
+            <div class="name-suggestions" id="nameSuggestions" aria-label="名字建议">
+              <span class="name-suggestions__label">试试</span>
+              <button type="button" data-name="晚晚">晚晚</button>
+              <button type="button" data-name="小满">小满</button>
+              <button type="button" data-name="星野">星野</button>
+              <button type="button" data-name="阿梨">阿梨</button>
+              <button type="button" data-name="桃桃">桃桃</button>
+            </div>
+
+            <div class="persona-summary" id="personaSummary"></div>
+
+            <div class="setup-actions setup-actions--name">
+              <p class="setup-disclaimer">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-heart"></use></svg>
+                她是一个 AI 虚拟角色，并非真人
+              </p>
+              <button class="primary-button" id="setupFinishBtn" type="button" disabled>
+                <span>开始这段故事</span>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-heart"></use></svg>
+              </button>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <p class="setup-footer">AURORA · A LITTLE ROMANCE, MADE FOR YOU</p>
+    </div>
+  </section>
+
+  <!-- ==================== Chat ==================== -->
   <div class="app-shell" id="appShell">
     <aside class="sidebar" id="sidebar" aria-label="对话侧边栏">
       <div class="sidebar__inner">
         <div class="sidebar__top">
           <a class="brand" href="/" aria-label="Aurora 首页">
             <span class="brand__orb" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><use href="#i-sparkles"></use></svg>
+              <svg viewBox="0 0 24 24"><use href="#i-heart"></use></svg>
             </span>
             <span class="brand__copy">
               <span class="brand__name">Aurora</span>
-              <span class="brand__tagline">AI 对话助手</span>
+              <span class="brand__tagline">AI 恋爱陪伴</span>
             </span>
           </a>
           <button class="icon-button icon-button--ghost sidebar__close" id="sidebarCloseBtn" type="button" aria-label="关闭侧边栏">
@@ -71,7 +195,7 @@
         </button>
 
         <div class="history-heading">
-          <span>最近对话</span>
+          <span>你们的故事</span>
           <span class="history-count" id="historyCount" aria-label="对话数量">0</span>
         </div>
 
@@ -79,10 +203,10 @@
           <nav class="history-list" id="historyList" aria-label="历史对话"></nav>
           <div class="history-empty" id="historyEmpty">
             <span class="history-empty__icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><use href="#i-chat"></use></svg>
+              <svg viewBox="0 0 24 24"><use href="#i-heart"></use></svg>
             </span>
-            <p>还没有对话</p>
-            <span>从一个问题开始吧</span>
+            <p>故事还没开始</p>
+            <span>从一句晚安开始吧</span>
           </div>
         </div>
 
@@ -109,7 +233,7 @@
               <span>清空</span>
             </button>
           </div>
-          <p class="sidebar__note">Aurora Studio · 用心回应每一次提问</p>
+          <p class="sidebar__note">Aurora · AI 虚拟角色</p>
         </div>
       </div>
     </aside>
@@ -122,16 +246,21 @@
           <button class="icon-button topbar__menu" id="openSidebarBtn" type="button" aria-label="打开侧边栏" aria-expanded="false" aria-controls="sidebar">
             <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-menu"></use></svg>
           </button>
-          <div class="topbar__title">
-            <span class="eyebrow">Aurora workspace</span>
-            <h1 id="conversationTitle">新的对话</h1>
+          <div class="topbar__identity">
+            <div class="persona-avatar persona-avatar--small" id="topbarAvatar" aria-hidden="true">
+              <span id="topbarAvatarInitial">她</span>
+              <i class="persona-presence"></i>
+            </div>
+            <div class="topbar__title">
+              <span class="eyebrow" id="topbarStatus">AI 虚拟角色</span>
+              <h1 id="conversationTitle">她</h1>
+            </div>
           </div>
         </div>
         <div class="topbar__right">
-          <div class="model-chip" id="modelChip" title="当前模型">
-            <span class="model-chip__pulse" aria-hidden="true"></span>
-            <span class="model-chip__label" id="modelChipText">加载中…</span>
-          </div>
+          <button class="icon-button" id="personaSettingsBtn" type="button" aria-label="修改她的设定" title="修改她的设定">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-settings"></use></svg>
+          </button>
           <button class="icon-button topbar__new" id="newChatTopBtn" type="button" aria-label="开启新对话" title="开启新对话">
             <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-plus"></use></svg>
           </button>
@@ -140,80 +269,6 @@
 
       <section class="chat-stage" id="chatStage" aria-label="对话内容">
         <div class="chat-column">
-          <section class="welcome" id="welcome">
-            <div class="welcome__visual" aria-hidden="true">
-              <span class="welcome__orbit welcome__orbit--outer"></span>
-              <span class="welcome__orbit welcome__orbit--inner"></span>
-              <span class="welcome__orb">
-                <svg viewBox="0 0 24 24"><use href="#i-sparkles"></use></svg>
-              </span>
-              <span class="welcome__spark welcome__spark--one"></span>
-              <span class="welcome__spark welcome__spark--two"></span>
-              <span class="welcome__spark welcome__spark--three"></span>
-            </div>
-
-            <div class="welcome__copy">
-              <span class="hero-pill">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-sparkles"></use></svg>
-                你的 AI 创意搭档
-              </span>
-              <h2>让灵感，<span class="gradient-text">在此刻发生</span></h2>
-              <p>思考、写作、编码，或者只是聊聊天。<br>Aurora 会认真理解你的每一个问题。</p>
-            </div>
-
-            <div class="suggestion-grid" aria-label="推荐问题">
-              <button class="suggestion-card suggestion-card--violet" type="button"
-                      data-prompt="帮我写一封得体又真诚的请假邮件，语气专业但不生硬。">
-                <span class="suggestion-card__icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24"><use href="#i-pen"></use></svg>
-                </span>
-                <span class="suggestion-card__copy">
-                  <strong>灵感写作</strong>
-                  <span>打磨一段有温度的文字</span>
-                </span>
-                <svg class="suggestion-card__arrow" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow-up-right"></use></svg>
-              </button>
-
-              <button class="suggestion-card suggestion-card--cyan" type="button"
-                      data-prompt="用 Python 写一个带重试逻辑的 HTTP 请求示例，并逐行解释。">
-                <span class="suggestion-card__icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24"><use href="#i-code"></use></svg>
-                </span>
-                <span class="suggestion-card__copy">
-                  <strong>代码助手</strong>
-                  <span>写代码、调试与解释</span>
-                </span>
-                <svg class="suggestion-card__arrow" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow-up-right"></use></svg>
-              </button>
-
-              <button class="suggestion-card suggestion-card--amber" type="button"
-                      data-prompt="我想在一个月内入门数据分析，帮我制定一份可执行的学习计划。">
-                <span class="suggestion-card__icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24"><use href="#i-plan"></use></svg>
-                </span>
-                <span class="suggestion-card__copy">
-                  <strong>学习规划</strong>
-                  <span>把目标拆成可执行步骤</span>
-                </span>
-                <svg class="suggestion-card__arrow" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow-up-right"></use></svg>
-              </button>
-
-              <button class="suggestion-card suggestion-card--pink" type="button"
-                      data-prompt="围绕「未来城市」给我 5 个有画面感的短篇故事创意。">
-                <span class="suggestion-card__icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24"><use href="#i-bulb"></use></svg>
-                </span>
-                <span class="suggestion-card__copy">
-                  <strong>创意脑暴</strong>
-                  <span>从一个点子开始发散</span>
-                </span>
-                <svg class="suggestion-card__arrow" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow-up-right"></use></svg>
-              </button>
-            </div>
-
-            <p class="hero-footnote"><span class="key">Enter</span> 发送 <span class="dot-separator">·</span> <span class="key">Shift + Enter</span> 换行</p>
-          </section>
-
           <div class="messages" id="messages" role="log" aria-live="polite" aria-label="消息列表"></div>
         </div>
       </section>
@@ -232,7 +287,7 @@
               name="message"
               rows="1"
               maxlength="12000"
-              placeholder="给 Aurora 发消息…"
+              placeholder="对她说点什么…"
               autocomplete="off"
               spellcheck="false"
             ></textarea>
@@ -250,7 +305,7 @@
             </div>
           </form>
         </div>
-        <p class="disclaimer">Aurora 可能会犯错，请核实重要信息。</p>
+        <p class="disclaimer">她是一个 AI 虚拟角色，并非真人。请记得也在现实里被好好爱着。</p>
       </footer>
     </main>
   </div>
